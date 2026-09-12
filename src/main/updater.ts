@@ -107,8 +107,19 @@ export class UpdaterService {
     })
 
     autoUpdater.on('error', (err) => {
+      const message = err?.message ?? String(err)
+
+      // A repository with no releases yet is the normal state before the first
+      // tag, not a fault. Reporting it as an error trains people to ignore
+      // updater errors, which is exactly when a real one gets missed.
+      if (/No published versions/i.test(message)) {
+        log.info('[updater] no releases published yet')
+        this.set({ phase: 'not-available', error: undefined })
+        return
+      }
+
       log.error('[updater]', err)
-      this.set({ phase: 'error', error: err?.message ?? String(err) })
+      this.set({ phase: 'error', error: message })
     })
   }
 
