@@ -1,0 +1,53 @@
+name: Release
+
+# Tag a version to cut a release:
+#   npm version patch && git push --follow-tags
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run assets
+      - run: npm run build
+
+      # Each OS publishes its own artifacts into the same draft release.
+      # electron-updater needs latest.yml / latest-mac.yml / latest-linux.yml
+      # alongside the installers, which electron-builder emits automatically.
+      #
+      # macOS note: mac.target includes `zip` as well as `dmg` because
+      # electron-updater looks specifically for a zip and explicitly excludes
+      # dmg and pkg. Dropping it breaks auto-update with
+      # ERR_UPDATER_ZIP_FILE_NOT_FOUND.
+      - name: Build and publish
+        run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # These builds are unsigned. Without this, electron-builder tries to
+          # discover a signing identity on the macOS runner and fails the build.
+          #
+          # To sign properly later: add an Apple Developer ID certificate and
+          # its password as CSC_LINK / CSC_KEY_PASSWORD secrets, add
+          # APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for
+          # notarization, drop this line, and set PIANO_MIDI_MAC_SIGNED=1 so
+          # the app enables in-place updates on macOS.
+          CSC_IDENTITY_AUTO_DISCOVERY: false

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Typecheck and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Deliberately NOT running `npm run assets` here: the tests cover music
+      # theory, grading and the curriculum, none of which touch audio files,
+      # and downloading 5 MB of samples on every push buys nothing.
+      - run: npm run typecheck
+      - run: npm test
+
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run assets
+      - run: npm run build
+
+      # Package without publishing, to prove the installers actually build.
+      - run: npx electron-builder --publish never
+        env:
+          # Skip macOS signing and notarization on CI; these builds are unsigned.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
