@@ -101,11 +101,11 @@ export function StaffView({
 
         if (isFirst) {
           new StaveConnector(upper, lower)
-            .setType(StaveConnector.type.BRACE)
+            .setType('brace')
             .setContext(context)
             .draw()
           new StaveConnector(upper, lower)
-            .setType(StaveConnector.type.SINGLE_LEFT)
+            .setType('singleLeft')
             .setContext(context)
             .draw()
         }
@@ -145,8 +145,8 @@ export function StaffView({
         })
 
         const voice = new Voice({
-          numBeats: phrase.timeSignature[0],
-          beatValue: phrase.timeSignature[1]
+          num_beats: phrase.timeSignature[0],
+          beat_value: phrase.timeSignature[1]
         })
         // Bars may be partially filled while a phrase is being generated.
         voice.setStrict(false)
