@@ -8,8 +8,13 @@ dist/
 dist-electron/
 out/
 release/
-build/
 *.tsbuildinfo
+
+# NOTE: build/ is NOT ignored. Despite the name it is electron-builder's
+# `buildResources` directory — icons and entitlements, which are SOURCE.
+# Ignoring it meant the icons never reached CI: macOS silently fell back to the
+# default Electron icon and the Windows NSIS build failed outright on a missing
+# installerIcon. Build OUTPUT goes to release/.
 
 # Bundled sound assets (downloaded by scripts/fetch-assets.mjs)
 resources/audio/samples/

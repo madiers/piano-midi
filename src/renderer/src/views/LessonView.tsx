@@ -8,6 +8,8 @@ import { FallingNotes } from '../components/FallingNotes'
 import { ConceptBlocks } from '../components/ConceptBlocks'
 import { ResultPanel } from '../components/ResultPanel'
 import { AnchorCheck } from '../components/AnchorCheck'
+import { DrillPanel } from './DrillPanel'
+import { isDrillExercise } from '../lessons/exerciseKinds'
 import { useExerciseRunner } from '../lessons/useExerciseRunner'
 import { generatePhrase, generateRhythm, phraseFromNotes, randomSeed } from '../lessons/generator'
 import { scaleNotes, LH_MAJOR_SCALE_FINGERING, RH_MAJOR_SCALE_FINGERING } from '../music/scales'
@@ -137,6 +139,34 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson.id])
 
+  /** Drills score as a simple proportion correct; there is no timing to grade. */
+  const recordDrillResult = useCallback(
+    (score: number) => {
+      const existing = progress.lessons[lesson.id]
+      const passed = score >= lesson.mastery.minScore
+      const stars: 0 | 1 | 2 | 3 = score >= 0.93 ? 3 : score >= 0.8 ? 2 : score >= 0.6 ? 1 : 0
+
+      void saveProgress({
+        ...progress,
+        lessons: {
+          ...progress.lessons,
+          [lesson.id]: {
+            lessonId: lesson.id,
+            stars: Math.max(existing?.stars ?? 0, stars) as 0 | 1 | 2 | 3,
+            bestScore: Math.max(existing?.bestScore ?? 0, score),
+            bestPitchAccuracy: Math.max(existing?.bestPitchAccuracy ?? 0, score),
+            attempts: (existing?.attempts ?? 0) + 1,
+            // Drills have no tempo, so passing one satisfies its tempo gate.
+            bestTempoPercent: 100,
+            completed: existing?.completed || passed,
+            lastPlayedAt: new Date().toISOString()
+          }
+        }
+      })
+    },
+    [lesson, progress, saveProgress]
+  )
+
   const retry = useCallback(() => {
     setSeed(randomSeed())
     runner.reset()
@@ -184,7 +214,10 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
           </p>
         </div>
 
-        {lesson.exercise && lesson.exercise.kind !== 'freePlay' && (
+        {/* Tempo only applies to timed performances; drills have no beat. */}
+        {lesson.exercise &&
+          lesson.exercise.kind !== 'freePlay' &&
+          !isDrillExercise(lesson.exercise) && (
           <div className="no-drag ml-auto flex items-center gap-2">
             <span className="text-xs text-ink-400">Tempo</span>
             {(['wait', 60, 80, 100] as TempoStep[]).map((step) => (
@@ -220,6 +253,14 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
             />
           )}
 
+          {isDrillExercise(lesson.exercise) && (
+            <DrillPanel
+              lesson={lesson}
+              exercise={lesson.exercise}
+              onComplete={recordDrillResult}
+            />
+          )}
+
           {phrase && !runner.result && (
             <section className="mt-6 rounded-xl border border-ink-700 bg-ink-850 p-5">
               {runner.phase === 'counting-in' && (
@@ -252,7 +293,7 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
             </section>
           )}
 
-          {lesson.kind === 'concept' && !lesson.exercise && (
+          {(lesson.kind === 'concept' || isDrillExercise(lesson.exercise)) && (
             <div className="mt-8 flex justify-end">
               {next && (
                 <button

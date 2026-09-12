@@ -8,24 +8,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type {
-  ChordBuildExercise,
-  Exercise,
-  FindNoteExercise,
-  IntervalEarExercise,
-  NoteNameExercise
-} from '@shared/types'
+import { type DrillExercise } from './exerciseKinds'
 import { useAppStore } from '../store/appStore'
 import { makeRng, randomSeed } from './generator'
 import { pitchClass } from '../music/pitch'
 import { CHORD_INTERVALS, chordNotes, type Chord, type ChordQuality } from '../music/chords'
 import { classifyError, ERROR_HINTS, type ErrorKind } from './grading'
-
-export type DrillExercise =
-  | NoteNameExercise
-  | FindNoteExercise
-  | ChordBuildExercise
-  | IntervalEarExercise
 
 export interface DrillPrompt {
   index: number
@@ -55,15 +43,6 @@ export interface DrillRunner {
   skip: () => void
   replay: () => void
   reset: () => void
-}
-
-export function isDrillExercise(exercise: Exercise | undefined): exercise is DrillExercise {
-  return (
-    exercise?.kind === 'noteName' ||
-    exercise?.kind === 'findNote' ||
-    exercise?.kind === 'chordBuild' ||
-    exercise?.kind === 'intervalEar'
-  )
 }
 
 /** How many distinct notes a correct answer needs. */
@@ -342,3 +321,4 @@ export function chordPromptLabel(quality: ChordQuality): string {
 }
 
 export { CHORD_INTERVALS }
+export { isDrillExercise, type DrillExercise } from './exerciseKinds'
