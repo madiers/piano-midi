@@ -34,9 +34,17 @@ controller so it never asks for a note you do not have.
 
 ## Screens
 
-| Lessons | A lesson |
-|---|---|
-| Unit map with progress and stars | Notation, falling notes, and your keyboard |
+<img src="docs/screenshots/lessons.png" width="100%" alt="The lesson map: 16 units, each with its octave anchor and star progress">
+
+*The course map. Each unit shows the octave anchor it needs and the stars earned so far.*
+
+<img src="docs/screenshots/lesson-scale.png" width="100%" alt="A scale lesson showing fingering above each note and on the keys">
+
+*A scale lesson. Fingering is printed above each note and on the keys themselves — note the thumb passing under at F.*
+
+<img src="docs/screenshots/lesson-reading.png" width="100%" alt="A sight-reading lesson with the phrase wrapped over two systems">
+
+*Sight-reading. Phrases wrap onto systems like real sheet music rather than scrolling sideways.*
 
 ## Install
 
