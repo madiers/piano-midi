@@ -7,6 +7,7 @@ import {
   summariseUnit
 } from '../lessons/curriculum'
 import { ANCHORS, type Lesson } from '@shared/types'
+import { formatPracticeTime, totalStars } from '../lessons/practiceStats'
 
 const KIND_LABEL: Record<Lesson['kind'], string> = {
   concept: 'Learn',
@@ -22,6 +23,25 @@ const KIND_STYLE: Record<Lesson['kind'], string> = {
   play: 'bg-good-500/20 text-good-500',
   review: 'bg-ink-700 text-ink-200',
   assess: 'bg-warn-500/20 text-warn-500'
+}
+
+function Stat({
+  value,
+  label,
+  accent = false
+}: {
+  value: string
+  label: string
+  accent?: boolean
+}): React.JSX.Element {
+  return (
+    <div>
+      <div className={`font-mono text-xl font-semibold ${accent ? 'text-warn-500' : 'text-ink-100'}`}>
+        {value}
+      </div>
+      <div className="text-[11px] uppercase tracking-wide text-ink-400">{label}</div>
+    </div>
+  )
 }
 
 export function HomeView({
@@ -63,6 +83,19 @@ export function HomeView({
             style={{ width: `${(completed / totalLessons) * 100}%` }}
           />
         </div>
+
+        {(progress.stats.sessions > 0 || progress.stats.streakDays > 0) && (
+          <div className="mt-5 flex flex-wrap gap-6 border-t border-ink-700 pt-4">
+            <Stat
+              value={String(progress.stats.streakDays)}
+              label={progress.stats.streakDays === 1 ? 'day streak' : 'days in a row'}
+              accent={progress.stats.streakDays > 0}
+            />
+            <Stat value={String(totalStars(progress))} label="stars earned" />
+            <Stat value={formatPracticeTime(progress.stats.totalPracticeMs)} label="practised" />
+            <Stat value={progress.stats.notesPlayed.toLocaleString()} label="notes played" />
+          </div>
+        )}
       </div>
 
       <div className="space-y-4 pb-10">

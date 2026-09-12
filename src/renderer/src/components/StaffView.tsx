@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react'
 import {
   Accidental,
   Beam,
+  FretHandFinger,
   Formatter,
+  Modifier,
   Renderer,
   Stave,
   StaveConnector,
@@ -150,7 +152,9 @@ export function StaffView({
         )
         if (barNotes.length === 0) continue
 
-        const staveNotes = barNotes.map((note) => buildStaveNote(note, clef, key.fifths))
+        const staveNotes = barNotes.map((note) =>
+          buildStaveNote(note, clef, key.fifths, showFingers)
+        )
 
         // Colour each note by how it was played.
         barNotes.forEach((note, index) => {
@@ -228,7 +232,12 @@ function durationCode(beats: number): { duration: string; dots: number } {
   return { duration: best[1], dots: best[2] }
 }
 
-function buildStaveNote(note: PhraseNote, clef: string, fifths: number): StaveNote {
+function buildStaveNote(
+  note: PhraseNote,
+  clef: string,
+  fifths: number,
+  showFingers = false
+): StaveNote {
   const key = keySignature(fifths)
   const spelled = note.midi.map((midi) => spellInKey(midi, key))
 
@@ -246,6 +255,18 @@ function buildStaveNote(note: PhraseNote, clef: string, fifths: number): StaveNo
       staveNote.addModifier(new Accidental(accidentalGlyph(p.accidental)), index)
     }
   })
+
+  // Finger numbers sit above the note, which is where a pianist expects them.
+  // VexFlow calls this modifier FretHandFinger for guitar reasons; it draws a
+  // plain digit, which is exactly what piano fingering needs.
+  if (showFingers && note.fingers) {
+    note.fingers.forEach((finger, index) => {
+      if (!finger) return
+      const marker = new FretHandFinger(String(finger))
+      marker.setPosition(Modifier.Position.ABOVE)
+      staveNote.addModifier(marker, index)
+    })
+  }
 
   return staveNote
 }

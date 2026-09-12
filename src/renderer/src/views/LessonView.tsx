@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Lesson, Phrase, TempoStep } from '@shared/types'
 import { ANCHORS } from '@shared/types'
 import { useAppStore } from '../store/appStore'
@@ -15,6 +15,7 @@ import { generatePhrase, generateRhythm, phraseFromNotes, randomSeed } from '../
 import { scaleNotes, LH_MAJOR_SCALE_FINGERING, RH_MAJOR_SCALE_FINGERING } from '../music/scales'
 import { nextLesson } from '../lessons/curriculum'
 import type { PerformanceResult } from '../lessons/PerformanceGrader'
+import { recordPractice } from '../lessons/practiceStats'
 
 export interface LessonViewProps {
   lesson: Lesson
@@ -63,6 +64,9 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
   // memorisation, which is the one thing the exercise must not become.
   const [seed, setSeed] = useState(() => randomSeed())
   const [started, setStarted] = useState(false)
+  // Practice time counts from opening the lesson, not from launching the app:
+  // rewarding time-with-the-app-open is how a streak stops meaning practice.
+  const openedAt = useRef(performance.now())
 
   const phrase = useMemo(() => buildPhrase(lesson, seed), [lesson, seed])
   const tempo: TempoStep = settings.practice.tempoStep
@@ -97,10 +101,11 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
             lastPlayedAt: new Date().toISOString()
           }
         },
-        stats: {
-          ...progress.stats,
-          notesPlayed: progress.stats.notesPlayed + result.correct
-        }
+        stats: recordPractice(
+          progress.stats,
+          performance.now() - openedAt.current,
+          result.correct
+        ).stats
       })
     },
     [lesson, progress, saveProgress, tempo]
@@ -161,7 +166,8 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
             completed: existing?.completed || passed,
             lastPlayedAt: new Date().toISOString()
           }
-        }
+        },
+        stats: recordPractice(progress.stats, performance.now() - openedAt.current, 0).stats
       })
     },
     [lesson, progress, saveProgress]
@@ -273,6 +279,7 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
                 phrase={phrase}
                 outcomes={runner.outcomes}
                 currentNoteId={runner.currentNoteId}
+                showFingers={settings.practice.showFingerNumbers}
                 width={760}
                 className="overflow-x-auto rounded-lg bg-ink-100 p-2"
               />
