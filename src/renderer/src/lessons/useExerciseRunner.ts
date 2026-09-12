@@ -52,6 +52,12 @@ export function useExerciseRunner(options: UseExerciseRunnerOptions): ExerciseRu
   const graderRef = useRef<PerformanceGrader | null>(null)
   const startContextTimeRef = useRef<number | null>(null)
   const rafRef = useRef<number>(0)
+  /**
+   * Guards the animation loop. `step` reschedules itself at the top of the
+   * frame, so cancelling the pending id is not enough — a frame already in
+   * flight would queue another one and the loop would outlive the exercise.
+   */
+  const loopingRef = useRef(false)
   const phaseRef = useRef<RunnerPhase>('idle')
   phaseRef.current = phase
 
@@ -75,6 +81,7 @@ export function useExerciseRunner(options: UseExerciseRunnerOptions): ExerciseRu
   }, [audio, effectiveBpm])
 
   const stop = useCallback(() => {
+    loopingRef.current = false
     cancelAnimationFrame(rafRef.current)
     audio.metronome.stop()
     audio.allNotesOff()
@@ -125,6 +132,7 @@ export function useExerciseRunner(options: UseExerciseRunnerOptions): ExerciseRu
           setResult(event.result)
           setPhase('finished')
           options.onComplete?.(event.result)
+          loopingRef.current = false
           cancelAnimationFrame(rafRef.current)
           audio.metronome.stop()
         }
@@ -172,6 +180,7 @@ export function useExerciseRunner(options: UseExerciseRunnerOptions): ExerciseRu
     grader.start(audio.contextToPerformanceMs(phraseStart))
 
     const step = (): void => {
+      if (!loopingRef.current) return
       rafRef.current = requestAnimationFrame(step)
       const position = getPositionBeats()
 
@@ -183,6 +192,7 @@ export function useExerciseRunner(options: UseExerciseRunnerOptions): ExerciseRu
       const next = grader.nextEvent
       setCurrentNoteId((previous) => (previous === (next?.id ?? null) ? previous : next?.id ?? null))
     }
+    loopingRef.current = true
     rafRef.current = requestAnimationFrame(step)
   }, [
     audio,
