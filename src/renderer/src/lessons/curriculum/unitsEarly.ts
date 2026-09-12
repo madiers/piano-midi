@@ -51,7 +51,7 @@ export const UNIT_0: Unit = makeUnit(
           'Play your lowest key, then your highest. This tells the app exactly how much keyboard you have, so it never asks you for a note you physically cannot play.'
         )
       ],
-      exercise: { kind: 'freePlay' }
+      exercise: { kind: 'calibration', mode: 'range' }
     },
     {
       title: 'Find your octave',
@@ -65,7 +65,7 @@ export const UNIT_0: Unit = makeUnit(
           'Two octaves, anchored'
         )
       ],
-      exercise: { kind: 'freePlay' }
+      exercise: { kind: 'calibration', mode: 'octave', targetLowNote: 48 }
     },
     {
       title: 'Timing calibration',
@@ -77,7 +77,7 @@ export const UNIT_0: Unit = makeUnit(
           'Why this matters'
         )
       ],
-      exercise: { kind: 'rhythmTap', rounds: 1, generator: { bars: 4, timeSignature: [4, 4], tempoBpm: 100, keySignatureFifths: 0, pool: [60], hand: 'right', durations: [1], maxLeap: 1, restProbability: 0 } }
+      exercise: { kind: 'calibration', mode: 'latency' }
     },
     {
       title: 'Sit well',

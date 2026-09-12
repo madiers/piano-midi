@@ -52,9 +52,24 @@ Download the latest build for your platform from
 [Releases](https://github.com/madiers/piano-midi/releases).
 
 - **macOS** — open the `.dmg` and drag the app to Applications. The build is
-  not code-signed, so the first launch needs **right-click → Open** and then
-  **Open** in the dialog. (Double-clicking shows a "cannot be opened" message;
-  that is Gatekeeper, not a broken download.)
+  not code-signed or notarized, so macOS will refuse the first launch with
+  *"Apple could not verify [it] is free of malware"*. That is Gatekeeper
+  reacting to the missing signature, not a damaged download.
+
+  On **macOS 15 Sequoia and later** (including 26), open it once via:
+
+  **System Settings → Privacy & Security**, scroll to Security, and click
+  **Open Anyway** next to the Piano MIDI message, then confirm.
+
+  Right-click → Open no longer works: Apple removed that bypass in macOS 15.
+  If you would rather do it from a terminal:
+
+  ```bash
+  xattr -dr com.apple.quarantine "/Applications/Piano MIDI.app"
+  ```
+
+  Either way you only do this once. It goes away entirely once the app is
+  signed with an Apple Developer ID — see [Updates](#updates).
 - **Windows** — run the installer. It is a normal multi-page wizard and lets
   you choose the install location. SmartScreen may warn that the publisher is
   unknown; choose **More info → Run anyway**.

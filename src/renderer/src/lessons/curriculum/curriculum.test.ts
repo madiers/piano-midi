@@ -49,6 +49,10 @@ function notesRequiredBy(exercise: Exercise): number[] {
       return scaleNotes(exercise.tonicMidi, exercise.scaleType, exercise.octaves)
     case 'freePlay':
       return []
+    case 'calibration':
+      // Calibration measures whatever keyboard the student actually has, so
+      // it never demands a particular note.
+      return []
   }
 }
 

@@ -262,6 +262,7 @@ export interface Phrase {
 // ------------------------------------------------------------------ exercises
 
 export type ExerciseKind =
+  | 'calibration'
   | 'noteName'
   | 'findNote'
   | 'sightRead'
@@ -356,7 +357,22 @@ export interface FreePlayExercise extends ExerciseBase {
   kind: 'freePlay'
 }
 
+/**
+ * Unit 0's setup steps, which measure the instrument rather than the student.
+ *
+ * These need their own kind because they must WRITE to settings — the earlier
+ * version used a freePlay exercise, which rendered nothing, saved nothing and
+ * left the lesson with no way to complete. The app was unusable from lesson two.
+ */
+export interface CalibrationExercise extends ExerciseBase {
+  kind: 'calibration'
+  mode: 'range' | 'octave' | 'latency'
+  /** For 'octave': the note the lowest key is expected to send. */
+  targetLowNote?: number
+}
+
 export type Exercise =
+  | CalibrationExercise
   | NoteNameExercise
   | FindNoteExercise
   | SightReadExercise

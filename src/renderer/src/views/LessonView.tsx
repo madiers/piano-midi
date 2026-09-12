@@ -9,6 +9,7 @@ import { ConceptBlocks } from '../components/ConceptBlocks'
 import { ResultPanel } from '../components/ResultPanel'
 import { AnchorCheck } from '../components/AnchorCheck'
 import { DrillPanel } from './DrillPanel'
+import { CalibrationLessonPanel } from './CalibrationLessonPanel'
 import { isDrillExercise } from '../lessons/exerciseKinds'
 import { useExerciseRunner } from '../lessons/useExerciseRunner'
 import { generatePhrase, generateRhythm, phraseFromNotes, randomSeed } from '../lessons/generator'
@@ -176,6 +177,29 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
     [lesson, saveProgress]
   )
 
+  /** Marks a lesson complete that has nothing to score — setup steps, sandboxes. */
+  const markComplete = useCallback(() => {
+    void saveProgress((previous) => {
+      if (previous.lessons[lesson.id]?.completed) return previous
+      return {
+        ...previous,
+        lessons: {
+          ...previous.lessons,
+          [lesson.id]: {
+            lessonId: lesson.id,
+            stars: 0,
+            bestScore: 1,
+            bestPitchAccuracy: 1,
+            attempts: 1,
+            bestTempoPercent: 100,
+            completed: true,
+            lastPlayedAt: new Date().toISOString()
+          }
+        }
+      }
+    })
+  }, [lesson.id, saveProgress])
+
   const retry = useCallback(() => {
     setSeed(randomSeed())
     runner.reset()
@@ -223,9 +247,11 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
           </p>
         </div>
 
-        {/* Tempo only applies to timed performances; drills have no beat. */}
+        {/* Tempo only applies to timed performances. Drills, calibration steps
+            and the sandbox have no beat, so the control would be meaningless. */}
         {lesson.exercise &&
           lesson.exercise.kind !== 'freePlay' &&
+          lesson.exercise.kind !== 'calibration' &&
           !isDrillExercise(lesson.exercise) && (
           <div className="no-drag ml-auto flex items-center gap-2">
             <span className="text-xs text-ink-400">Tempo</span>
@@ -260,6 +286,18 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
               onRetry={retry}
               onNext={next ? () => onAdvance(next.id) : undefined}
             />
+          )}
+
+          {lesson.exercise?.kind === 'calibration' && (
+            <CalibrationLessonPanel exercise={lesson.exercise} onComplete={markComplete} />
+          )}
+
+          {lesson.exercise?.kind === 'freePlay' && (
+            <section className="mt-6 rounded-xl border border-ink-700 bg-ink-850 p-6 text-center">
+              <p className="text-sm text-ink-300">
+                Play freely on the keyboard below. Continue when you are ready.
+              </p>
+            </section>
           )}
 
           {isDrillExercise(lesson.exercise) && (
@@ -303,11 +341,23 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
             </section>
           )}
 
-          {(lesson.kind === 'concept' || isDrillExercise(lesson.exercise)) && (
+          {/*
+            Anything without a graded result needs its own way forward. Leaving
+            a kind out of this condition strands the lesson with no Continue
+            button and no completion — which is exactly what happened to the
+            Unit 0 calibration steps.
+          */}
+          {(lesson.kind === 'concept' ||
+            isDrillExercise(lesson.exercise) ||
+            lesson.exercise?.kind === 'calibration' ||
+            lesson.exercise?.kind === 'freePlay') && (
             <div className="mt-8 flex justify-end">
               {next && (
                 <button
-                  onClick={() => onAdvance(next.id)}
+                  onClick={() => {
+                    if (lesson.exercise?.kind === 'freePlay') markComplete()
+                    onAdvance(next.id)
+                  }}
                   className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
                 >
                   Continue →
