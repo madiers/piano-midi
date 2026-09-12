@@ -106,3 +106,47 @@ describe('the course never asks for something it has not taught', () => {
     expect(early).toEqual([])
   })
 })
+
+describe('the staff is not shown before it is taught', () => {
+  /**
+   * Units 3 and 4 build five-finger control with no notation load, which is how
+   * every mainstream method sequences it — and one of those lessons explicitly
+   * promises "No staff yet". Rendering a staff there asks the student to read
+   * something the course has not introduced.
+   *
+   * Unit 2 is deliberately exempt: it TEACHES note values and bar lines
+   * ("a quarter note has a filled head with a stem"), so showing notation there
+   * is the lesson, not a leak.
+   */
+  it('marks every pre-staff sight-reading lesson as preStaff', () => {
+    const staffTaught = ALL_LESSONS.findIndex((l) => l.newConcepts.includes('staff'))
+    expect(staffTaught).toBeGreaterThan(0)
+
+    const leaks: string[] = []
+    ALL_LESSONS.slice(0, staffTaught).forEach((lesson) => {
+      const ex = lesson.exercise
+      if (ex?.kind === 'sightRead' && ex.preStaff !== true) {
+        leaks.push(`${lesson.id} "${lesson.title}" would draw a staff before ${ALL_LESSONS[staffTaught]!.id} teaches it`)
+      }
+    })
+
+    expect(leaks).toEqual([])
+  })
+
+  it('does not mark anything after the staff lesson as preStaff', () => {
+    const staffTaught = ALL_LESSONS.findIndex((l) => l.newConcepts.includes('staff'))
+    const stragglers = ALL_LESSONS.slice(staffTaught)
+      .filter((l) => l.exercise?.kind === 'sightRead' && l.exercise.preStaff === true)
+      .map((l) => l.id)
+
+    expect(stragglers).toEqual([])
+  })
+
+  it('keeps the lesson that promises no staff honest', () => {
+    const lesson = ALL_LESSONS.find((l) => l.blocks.some((b) => b.body.includes('No staff yet')))
+    expect(lesson, 'the promise moved or vanished').toBeDefined()
+    expect(lesson!.exercise?.kind).toBe('sightRead')
+    if (lesson!.exercise?.kind !== 'sightRead') return
+    expect(lesson!.exercise.preStaff).toBe(true)
+  })
+})

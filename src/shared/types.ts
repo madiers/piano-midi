@@ -318,6 +318,15 @@ export interface SightReadExercise extends ExerciseBase {
   generator: PhraseGeneratorSpec
   /** Hide the falling-note lane — at least one pass per lesson must be staff-only. */
   staffOnly: boolean
+  /**
+   * Show finger numbers instead of notation.
+   *
+   * Units 3 and 4 come before the staff is introduced and build five-finger
+   * control with no notation load — the sequencing every mainstream method
+   * uses. Drawing a staff there asks the student to read something the course
+   * has not taught.
+   */
+  preStaff?: boolean
 }
 
 /** Synthesia-style falling notes over a fixed phrase. */

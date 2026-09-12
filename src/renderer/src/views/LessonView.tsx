@@ -4,6 +4,7 @@ import { ANCHORS } from '@shared/types'
 import { useAppStore } from '../store/appStore'
 import { PianoKeyboard, type KeyMark } from '../components/PianoKeyboard'
 import { StaffView } from '../components/StaffView'
+import { PreStaffView } from '../components/PreStaffView'
 import { FallingNotes } from '../components/FallingNotes'
 import { ConceptBlocks } from '../components/ConceptBlocks'
 import { ResultPanel } from '../components/ResultPanel'
@@ -228,9 +229,13 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
     return map
   }, [phrase, settings.practice.showFingerNumbers])
 
+  // Units 3 and 4 precede the staff, so they show finger numbers instead.
+  const preStaff = lesson.exercise?.kind === 'sightRead' && lesson.exercise.preStaff === true
+
   const next = nextLesson(lesson.id)
   const showFalling =
     settings.practice.showFallingNotes &&
+    !preStaff &&
     !(lesson.exercise?.kind === 'sightRead' && lesson.exercise.staffOnly)
 
   return (
@@ -318,14 +323,23 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
                 </p>
               )}
 
-              <StaffView
-                phrase={phrase}
-                outcomes={runner.outcomes}
-                currentNoteId={runner.currentNoteId}
-                showFingers={settings.practice.showFingerNumbers}
-                width={760}
-                className="overflow-x-auto rounded-lg bg-ink-100 p-2"
-              />
+              {preStaff ? (
+                <PreStaffView
+                  phrase={phrase}
+                  outcomes={runner.outcomes}
+                  currentNoteId={runner.currentNoteId}
+                  className="rounded-lg border border-ink-700 bg-ink-900 p-4"
+                />
+              ) : (
+                <StaffView
+                  phrase={phrase}
+                  outcomes={runner.outcomes}
+                  currentNoteId={runner.currentNoteId}
+                  showFingers={settings.practice.showFingerNumbers}
+                  width={760}
+                  className="overflow-x-auto rounded-lg bg-ink-100 p-2"
+                />
+              )}
 
               {!started && (
                 <button

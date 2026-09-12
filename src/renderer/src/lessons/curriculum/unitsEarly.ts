@@ -265,7 +265,7 @@ export const UNIT_3: Unit = makeUnit(
       hands: 'right',
       requiredRange: [60, 67],
       blocks: [text('Play the numbers as they appear. No staff yet — just fingers and keys.')],
-      exercise: { kind: 'sightRead', staffOnly: false, rounds: 1, generator: { bars: 4, timeSignature: [4, 4], tempoBpm: 66, keySignatureFifths: 0, pool: RH_C_POSITION, hand: 'right', durations: [1, 2], maxLeap: 1, restProbability: 0 } }
+      exercise: { kind: 'sightRead', staffOnly: false, preStaff: true, rounds: 1, generator: { bars: 4, timeSignature: [4, 4], tempoBpm: 66, keySignatureFifths: 0, pool: RH_C_POSITION, hand: 'right', durations: [1, 2], maxLeap: 1, restProbability: 0 } }
     },
     {
       title: 'Steps, skips and repeats',
@@ -284,7 +284,7 @@ export const UNIT_3: Unit = makeUnit(
       hands: 'right',
       requiredRange: [60, 67],
       blocks: [text('Short pieces in C position, quarter and half notes, 4/4.')],
-      exercise: { kind: 'sightRead', staffOnly: false, rounds: 2, generator: { bars: 8, timeSignature: [4, 4], tempoBpm: 72, keySignatureFifths: 0, pool: RH_C_POSITION, hand: 'right', durations: [1, 2, 4], maxLeap: 2, restProbability: 0.05 } }
+      exercise: { kind: 'sightRead', staffOnly: false, preStaff: true, rounds: 2, generator: { bars: 8, timeSignature: [4, 4], tempoBpm: 72, keySignatureFifths: 0, pool: RH_C_POSITION, hand: 'right', durations: [1, 2, 4], maxLeap: 2, restProbability: 0.05 } }
     },
     {
       title: 'A piece in 3/4',
@@ -292,7 +292,7 @@ export const UNIT_3: Unit = makeUnit(
       hands: 'right',
       requiredRange: [60, 67],
       blocks: [text('Three beats to the bar, with dotted half notes to fill a bar in one stroke.')],
-      exercise: { kind: 'sightRead', staffOnly: false, rounds: 1, generator: { bars: 8, timeSignature: [3, 4], tempoBpm: 69, keySignatureFifths: 0, pool: RH_C_POSITION, hand: 'right', durations: [1, 2, 3], maxLeap: 2, restProbability: 0 } }
+      exercise: { kind: 'sightRead', staffOnly: false, preStaff: true, rounds: 1, generator: { bars: 8, timeSignature: [3, 4], tempoBpm: 69, keySignatureFifths: 0, pool: RH_C_POSITION, hand: 'right', durations: [1, 2, 3], maxLeap: 2, restProbability: 0 } }
     }
   ]
 )
@@ -324,14 +324,14 @@ export const UNIT_4: Unit = makeUnit(
       kind: 'drill',
       hands: 'left',
       requiredRange: [48, 55],
-      exercise: { kind: 'sightRead', staffOnly: false, rounds: 1, generator: { bars: 4, timeSignature: [4, 4], tempoBpm: 66, keySignatureFifths: 0, pool: LH_C_POSITION, hand: 'left', durations: [1, 2], maxLeap: 1, restProbability: 0 } }
+      exercise: { kind: 'sightRead', staffOnly: false, preStaff: true, rounds: 1, generator: { bars: 4, timeSignature: [4, 4], tempoBpm: 66, keySignatureFifths: 0, pool: LH_C_POSITION, hand: 'left', durations: [1, 2], maxLeap: 1, restProbability: 0 } }
     },
     {
       title: 'Left-hand pieces',
       kind: 'play',
       hands: 'left',
       requiredRange: [48, 55],
-      exercise: { kind: 'sightRead', staffOnly: false, rounds: 2, generator: { bars: 8, timeSignature: [4, 4], tempoBpm: 72, keySignatureFifths: 0, pool: LH_C_POSITION, hand: 'left', durations: [1, 2, 4], maxLeap: 2, restProbability: 0.05 } }
+      exercise: { kind: 'sightRead', staffOnly: false, preStaff: true, rounds: 2, generator: { bars: 8, timeSignature: [4, 4], tempoBpm: 72, keySignatureFifths: 0, pool: LH_C_POSITION, hand: 'left', durations: [1, 2, 4], maxLeap: 2, restProbability: 0.05 } }
     },
     {
       title: 'Hands taking turns',
@@ -344,7 +344,7 @@ export const UNIT_4: Unit = makeUnit(
           'Left hand plays a phrase, then the right answers. The hands never sound at the same time — playing together is a genuinely harder motor skill and gets its own lesson in Unit 8.'
         )
       ],
-      exercise: { kind: 'sightRead', staffOnly: false, rounds: 1, generator: { bars: 8, timeSignature: [4, 4], tempoBpm: 69, keySignatureFifths: 0, pool: [...LH_C_POSITION, ...RH_C_POSITION], hand: 'both', durations: [1, 2], maxLeap: 2, restProbability: 0.1 } }
+      exercise: { kind: 'sightRead', staffOnly: false, preStaff: true, rounds: 1, generator: { bars: 8, timeSignature: [4, 4], tempoBpm: 69, keySignatureFifths: 0, pool: [...LH_C_POSITION, ...RH_C_POSITION], hand: 'both', durations: [1, 2], maxLeap: 2, restProbability: 0.1 } }
     }
   ]
 )
