@@ -83,25 +83,28 @@ function midiOf(p: SpelledPitch): number {
  * Compound intervals (9ths and beyond) are reduced to their simple form first.
  */
 export function qualityFor(number: number, semitones: number): IntervalQuality {
-  const simpleNumber = ((number - 1) % 7) + 1
+  // Reduce to a simple interval plus whole octaves. An octave (8) reduces to a
+  // unison (1) plus one octave, a tenth (10) to a third plus one octave, and so
+  // on. The expected size is then the simple interval's size plus 12 per
+  // octave, compared against the FULL semitone count — reducing only one side
+  // of that comparison is what made an octave read as diminished.
   const octaves = Math.floor((number - 1) / 7)
-  const simpleSemitones = semitones - octaves * 12
+  const simpleNumber = number - 7 * octaves
 
-  const base = BASE_SEMITONES[simpleNumber === 1 && number > 1 ? 8 : simpleNumber]
+  const base = BASE_SEMITONES[simpleNumber]
   if (base === undefined) return 'perfect'
 
-  const diff = simpleSemitones - base
+  const expected = base + 12 * octaves
+  const diff = semitones - expected
 
-  if (PERFECT_NUMBERS.has(simpleNumber === 1 && number > 1 ? 8 : simpleNumber)) {
+  if (PERFECT_NUMBERS.has(simpleNumber)) {
     if (diff === 0) return 'perfect'
-    if (diff > 0) return 'augmented'
-    return 'diminished'
+    return diff > 0 ? 'augmented' : 'diminished'
   }
 
   if (diff === 0) return 'major'
   if (diff === -1) return 'minor'
-  if (diff > 0) return 'augmented'
-  return 'diminished'
+  return diff > 0 ? 'augmented' : 'diminished'
 }
 
 /** Plain-English name, e.g. "major third". */
