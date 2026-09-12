@@ -126,11 +126,18 @@ export const UNIT_1: Unit = makeUnit(
         keyboardFigure(
           'The black keys are not evenly spread — they come in alternating groups of two and three. That pattern is how you find your way around without looking for labels, and it repeats identically all the way up the keyboard.',
           [49, 51, 54, 56, 58],
-          { 49: '2-group', 54: '3-group' },
+          { 49: 'a group of two', 54: 'a group of three' },
           'Twos and threes'
         )
       ],
-      exercise: { kind: 'findNote', pool: [49, 51, 54, 56, 58, 61, 63, 66, 68, 70], acceptAnyOctave: true, byPattern: true, rounds: 8 }
+      // Asks for the SHAPE, not note names: sharps are not taught until Unit 9.
+      exercise: {
+        kind: 'findNote',
+        pool: [49, 51, 54, 56, 58, 61, 63, 66, 68, 70],
+        acceptAnyOctave: true,
+        groupMode: 'mixed',
+        rounds: 8
+      }
     },
     {
       title: 'Find C, F and B by pattern',
@@ -140,7 +147,7 @@ export const UNIT_1: Unit = makeUnit(
         keyboardFigure(
           'Now use the groups to name white keys:\n\n• C is the white key immediately left of any group of two.\n• F is the white key immediately left of any group of three.\n• B is the white key immediately right of any group of three.\n\nWith those three, every other white key is just a step away.',
           [60, 65, 59],
-          { 60: 'C', 65: 'F', 59: 'B' },
+          { 60: 'C — left of a 2-group', 65: 'F — left of a 3-group', 59: 'B — right of a 3-group' },
           'Three keys you can always find'
         )
       ],

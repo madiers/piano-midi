@@ -15,8 +15,14 @@ import { pitchClass } from '../music/pitch'
 import { CHORD_INTERVALS, chordNotes, type Chord, type ChordQuality } from '../music/chords'
 import { classifyError, ERROR_HINTS, type ErrorKind } from './grading'
 
+/** Pitch classes of the two black-key shapes. */
+export const TWO_GROUP = [1, 3] as const
+export const THREE_GROUP = [6, 8, 10] as const
+
 export interface DrillPrompt {
   index: number
+  /** Set for a black-key-group prompt instead of a named note. */
+  group?: 'two' | 'three'
   /** Notes that constitute a correct answer, in the expected voicing. */
   expected: number[]
   /** For chord prompts. */
@@ -47,6 +53,7 @@ export interface DrillRunner {
 
 /** How many distinct notes a correct answer needs. */
 function answerSize(exercise: DrillExercise, prompt: DrillPrompt): number {
+  if (prompt.group) return prompt.group === 'two' ? 2 : 3
   if (exercise.kind === 'chordBuild') return prompt.expected.length
   if (exercise.kind === 'intervalEar') return 2
   return 1
@@ -87,9 +94,23 @@ export function useDrillRunner(
     (index: number): DrillPrompt => {
       switch (exercise.kind) {
         case 'noteName':
+          return { index, expected: [pick(exercise.pool)] }
+
         case 'findNote': {
-          const midi = pick(exercise.pool)
-          return { index, expected: [midi] }
+          if (exercise.groupMode) {
+            const group =
+              exercise.groupMode === 'mixed'
+                ? rngRef.current() < 0.5
+                  ? 'two'
+                  : 'three'
+                : exercise.groupMode
+            // A representative group, for the keyboard highlight only; any
+            // octave's group is accepted.
+            const base = 60
+            const expected = (group === 'two' ? TWO_GROUP : THREE_GROUP).map((pc) => base + pc)
+            return { index, group, expected }
+          }
+          return { index, expected: [pick(exercise.pool)] }
         }
 
         case 'chordBuild': {
@@ -197,7 +218,23 @@ export function useDrillRunner(
     (played: number[], current: DrillPrompt): boolean => {
       switch (exercise.kind) {
         case 'noteName':
+          return exercise.acceptAnyOctave
+            ? pitchClass(played[0]!) === pitchClass(current.expected[0]!)
+            : played[0] === current.expected[0]!
+
         case 'findNote': {
+          if (current.group) {
+            // Any octave's group counts. The notes must be the right shape AND
+            // physically adjacent, so scattered black keys from different
+            // groups do not pass.
+            const sorted = [...played].sort((a, b) => a - b)
+            const wanted = current.group === 'two' ? TWO_GROUP : THREE_GROUP
+            const classes = sorted.map(pitchClass).sort((a, b) => a - b)
+            if (classes.length !== wanted.length) return false
+            if (!wanted.every((pc, i) => classes[i] === pc)) return false
+            const span = sorted[sorted.length - 1]! - sorted[0]!
+            return current.group === 'two' ? span === 2 : span === 4
+          }
           const target = current.expected[0]!
           if (exercise.acceptAnyOctave) return pitchClass(played[0]!) === pitchClass(target)
           return played[0] === target

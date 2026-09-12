@@ -50,8 +50,7 @@ function Figure({ figure }: { figure: NonNullable<ConceptBlock['figure']> }): Re
               {Object.entries(figure.labels).map(([midi, label]) => (
                 <span key={midi} className="text-xs text-ink-300">
                   <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-brand-400 align-middle" />
-                  {label}{' '}
-                  <span className="text-ink-500">({noteName(Number(midi))})</span>
+                  {label}
                 </span>
               ))}
             </div>

@@ -100,8 +100,25 @@ export function DrillPanel({ lesson, exercise, onComplete }: DrillPanelProps): R
           </div>
         )}
 
+        {/* --- Find a black-key GROUP (Unit 1, before sharps exist) --- */}
+        {exercise.kind === 'findNote' && prompt?.group && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <p className="text-xs uppercase tracking-wide text-ink-400">Play a group of</p>
+            <p className="mt-2 text-5xl font-bold text-ink-100">
+              {prompt.group === 'two' ? 'TWO' : 'THREE'}
+            </p>
+            <p className="mt-1 text-lg text-ink-200">black keys</p>
+            <div className="mt-4 flex items-end gap-1.5" aria-hidden>
+              {(prompt.group === 'two' ? [0, 1] : [0, 1, 2]).map((i) => (
+                <span key={i} className="h-12 w-5 rounded-b bg-ink-950 ring-1 ring-ink-600" />
+              ))}
+            </div>
+            <p className="mt-4 text-xs text-ink-400">Any octave — play them together.</p>
+          </div>
+        )}
+
         {/* --- Find this note by name --- */}
-        {exercise.kind === 'findNote' && prompt && (
+        {exercise.kind === 'findNote' && prompt && !prompt.group && (
           <div className="flex flex-col items-center justify-center py-8">
             <p className="text-xs uppercase tracking-wide text-ink-400">Play this note</p>
             <p className="mt-2 font-mono text-5xl font-bold text-ink-100">
@@ -185,8 +202,14 @@ export function DrillPanel({ lesson, exercise, onComplete }: DrillPanelProps): R
           <div className="rounded-lg bg-bad-500/15 px-4 py-3 text-sm text-bad-500">
             <p>
               You played {drill.attempt.slice(-3).map((n) => noteName(n)).join(' ')}
-              {prompt && drill.attempt.length === 1 && (
-                <> — the answer is {noteName(prompt.expected[0]!)}.</>
+              {prompt?.group ? (
+                <>
+                  {' '}— that is not one group of {prompt.group === 'two' ? 'two' : 'three'}{' '}
+                  neighbouring black keys.
+                </>
+              ) : (
+                prompt &&
+                drill.attempt.length === 1 && <> — the answer is {noteName(prompt.expected[0]!)}.</>
               )}
             </p>
             {drill.hint && <p className="mt-1 text-ink-300">{drill.hint}</p>}
@@ -217,6 +240,7 @@ function describe(exercise: DrillExercise): string {
     case 'noteName':
       return 'A note appears on the staff. Play it on your keyboard.'
     case 'findNote':
+      if (exercise.groupMode) return 'Find the black-key groups by their shape.'
       return exercise.byPattern
         ? 'Find each key using the black-key groups as your guide.'
         : 'A note is named. Find it and play it.'

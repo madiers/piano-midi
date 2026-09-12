@@ -301,6 +301,15 @@ export interface FindNoteExercise extends ExerciseBase {
   acceptAnyOctave: boolean
   /** Prompt by pattern ("the white key left of a 2-black-key group"). */
   byPattern?: boolean
+  /**
+   * Ask for a GROUP of black keys rather than a named note.
+   *
+   * Unit 1 teaches the two-and-three black-key pattern long before sharps and
+   * flats exist in the course. Prompting "play C#" there asks for a name the
+   * student has no way to know yet, and contradicts the lesson, which is about
+   * the shape rather than the names.
+   */
+  groupMode?: 'two' | 'three' | 'mixed'
 }
 
 /** Read and play a generated phrase in time. */
