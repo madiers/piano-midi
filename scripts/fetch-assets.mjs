@@ -15,11 +15,11 @@
  * skipped unless --force is passed.
  */
 
-import { mkdir, readdir, rm, writeFile, access, cp } from 'node:fs/promises'
+import { mkdir, readdir, rm, writeFile, access } from 'node:fs/promises'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
-import { tmpdir } from 'node:os'
+import { gunzipSync } from 'node:zlib'
+import { createHash } from 'node:crypto'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
@@ -51,25 +51,64 @@ async function exists(path) {
 }
 
 /**
- * npm is `npm.cmd` on Windows, and `spawn` without a shell will not find it —
- * it fails with ENOENT, which reads like npm is missing rather than like a
- * path problem.
+ * Downloads and unpacks an npm tarball with no subprocesses at all.
+ *
+ * Earlier versions shelled out to `npm pack` and `tar`. Both are portability
+ * traps: on Windows npm is `npm.cmd`, and since Node's fix for CVE-2024-27980
+ * spawning a `.cmd` without a shell throws EINVAL — so CI failed twice for two
+ * different Windows-only reasons. Doing it in-process is shorter, works
+ * everywhere, and lets us verify the registry's integrity hash ourselves.
  */
-const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+async function downloadPackage(name, version) {
+  const meta = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/${version}`)
+  if (!meta.ok) throw new Error(`registry lookup failed for ${name}@${version}: ${meta.status}`)
+  const { dist } = await meta.json()
+  if (!dist?.tarball) throw new Error(`no tarball listed for ${name}@${version}`)
 
-function run(cmd, args, opts = {}) {
-  return new Promise((resolvePromise, reject) => {
-    const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], ...opts })
-    let stdout = ''
-    let stderr = ''
-    child.stdout?.on('data', (d) => (stdout += d))
-    child.stderr?.on('data', (d) => (stderr += d))
-    child.on('error', reject)
-    child.on('close', (code) => {
-      if (code === 0) resolvePromise(stdout.trim())
-      else reject(new Error(`${cmd} ${args.join(' ')} exited ${code}\n${stderr}`))
-    })
-  })
+  const response = await fetch(dist.tarball)
+  if (!response.ok) throw new Error(`tarball download failed: ${response.status}`)
+  const gz = Buffer.from(await response.arrayBuffer())
+
+  // The registry publishes an integrity hash; check it rather than trusting
+  // whatever arrived over the wire.
+  if (dist.integrity?.startsWith('sha512-')) {
+    const actual = createHash('sha512').update(gz).digest('base64')
+    const expected = dist.integrity.slice('sha512-'.length)
+    if (actual !== expected) {
+      throw new Error(`integrity mismatch for ${name}@${version}`)
+    }
+  }
+
+  return untar(gunzipSync(gz))
+}
+
+/**
+ * Minimal tar reader — enough for an npm tarball, which is a flat ustar
+ * archive with short paths. Returns a map of path -> contents.
+ */
+function untar(buf) {
+  const files = new Map()
+  let offset = 0
+
+  while (offset + 512 <= buf.length) {
+    const header = buf.subarray(offset, offset + 512)
+    // Two consecutive zero blocks mark the end of the archive.
+    if (header.every((b) => b === 0)) break
+
+    const name = header.subarray(0, 100).toString('utf8').replace(/\0.*$/, '')
+    const sizeField = header.subarray(124, 136).toString('utf8').replace(/\0.*$/, '').trim()
+    const size = Number.parseInt(sizeField, 8) || 0
+    const type = String.fromCharCode(header[156])
+
+    offset += 512
+    if (type === '0' || type === '\0' || type === '') {
+      files.set(name, buf.subarray(offset, offset + size))
+    }
+    // File data is padded up to the next 512-byte boundary.
+    offset += Math.ceil(size / 512) * 512
+  }
+
+  return files
 }
 
 async function fetchLayer(layer) {
@@ -86,35 +125,27 @@ async function fetchLayer(layer) {
 
   console.log(`  velocity ${layer.velocity}: downloading ${layer.pkg}@${layer.version} ...`)
 
-  const work = join(tmpdir(), `piano-midi-assets-${process.pid}-v${layer.velocity}`)
-  await mkdir(work, { recursive: true })
+  const files = await downloadPackage(layer.pkg, layer.version)
 
-  try {
-    // `npm pack` resolves the registry, verifies the integrity hash, and
-    // respects any proxy/registry config the user already has.
-    const tarballName = await run(NPM, ['pack', `${layer.pkg}@${layer.version}`, '--silent'], {
-      cwd: work
-    })
-    const tarball = join(work, tarballName.split('\n').pop().trim())
+  await rm(targetDir, { recursive: true, force: true })
+  await mkdir(targetDir, { recursive: true })
 
-    await run('tar', ['xzf', tarball], { cwd: work })
-
-    const audioSrc = join(work, 'package', 'audio')
-    if (!(await exists(audioSrc))) {
-      throw new Error(`no audio/ directory inside ${layer.pkg}`)
-    }
-
-    await rm(targetDir, { recursive: true, force: true })
-    await mkdir(targetDir, { recursive: true })
-    // fs.cp rather than `cp -R`, which does not exist on Windows.
-    await cp(audioSrc, targetDir, { recursive: true })
-
-    const copied = (await readdir(targetDir)).filter((f) => f.endsWith('.mp3'))
-    console.log(`  velocity ${layer.velocity}: ${copied.length} samples -> resources/audio/samples/v${layer.velocity}`)
-    return { ...layer, files: copied.length }
-  } finally {
-    await rm(work, { recursive: true, force: true })
+  let written = 0
+  for (const [path, contents] of files) {
+    if (!path.startsWith('package/audio/') || !path.endsWith('.mp3')) continue
+    const name = path.slice('package/audio/'.length)
+    // Refuse anything that tries to escape the target directory.
+    if (name.includes('/') || name.includes('\\') || name.includes('..')) continue
+    await writeFile(join(targetDir, name), contents)
+    written += 1
   }
+
+  if (written === 0) throw new Error(`no audio files found inside ${layer.pkg}`)
+
+  console.log(
+    `  velocity ${layer.velocity}: ${written} samples -> resources/audio/samples/v${layer.velocity}`
+  )
+  return { ...layer, files: written }
 }
 
 /**
