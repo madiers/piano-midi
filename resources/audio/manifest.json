@@ -1,0 +1,138 @@
+{
+  "layers": [
+    {
+      "velocity": 10,
+      "dir": "samples/v10",
+      "samples": [
+        {
+          "file": "A0v10.mp3",
+          "midi": 21
+        },
+        {
+          "file": "C1v10.mp3",
+          "midi": 24
+        },
+        {
+          "file": "D#1v10.mp3",
+          "midi": 27
+        },
+        {
+          "file": "F#1v10.mp3",
+          "midi": 30
+        },
+        {
+          "file": "A1v10.mp3",
+          "midi": 33
+        },
+        {
+          "file": "C2v10.mp3",
+          "midi": 36
+        },
+        {
+          "file": "D#2v10.mp3",
+          "midi": 39
+        },
+        {
+          "file": "F#2v10.mp3",
+          "midi": 42
+        },
+        {
+          "file": "A2v10.mp3",
+          "midi": 45
+        },
+        {
+          "file": "C3v10.mp3",
+          "midi": 48
+        },
+        {
+          "file": "D#3v10.mp3",
+          "midi": 51
+        },
+        {
+          "file": "F#3v10.mp3",
+          "midi": 54
+        },
+        {
+          "file": "A3v10.mp3",
+          "midi": 57
+        },
+        {
+          "file": "C4v10.mp3",
+          "midi": 60
+        },
+        {
+          "file": "D#4v10.mp3",
+          "midi": 63
+        },
+        {
+          "file": "F#4v10.mp3",
+          "midi": 66
+        },
+        {
+          "file": "A4v10.mp3",
+          "midi": 69
+        },
+        {
+          "file": "C5v10.mp3",
+          "midi": 72
+        },
+        {
+          "file": "D#5v10.mp3",
+          "midi": 75
+        },
+        {
+          "file": "F#5v10.mp3",
+          "midi": 78
+        },
+        {
+          "file": "A5v10.mp3",
+          "midi": 81
+        },
+        {
+          "file": "C6v10.mp3",
+          "midi": 84
+        },
+        {
+          "file": "D#6v10.mp3",
+          "midi": 87
+        },
+        {
+          "file": "F#6v10.mp3",
+          "midi": 90
+        },
+        {
+          "file": "A6v10.mp3",
+          "midi": 93
+        },
+        {
+          "file": "C7v10.mp3",
+          "midi": 96
+        },
+        {
+          "file": "D#7v10.mp3",
+          "midi": 99
+        },
+        {
+          "file": "F#7v10.mp3",
+          "midi": 102
+        },
+        {
+          "file": "A7v10.mp3",
+          "midi": 105
+        },
+        {
+          "file": "C8v10.mp3",
+          "midi": 108
+        }
+      ]
+    }
+  ],
+  "attribution": {
+    "name": "Salamander Grand Piano V3",
+    "author": "Alexander Holm",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://archive.org/details/SalamanderGrandPianoV3",
+    "repackagedBy": "Jan Forst (darosh) — @audio-samples/piano-mp3-velocity*, MIT"
+  }
+}

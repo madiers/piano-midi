@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink-950: #08090d;
+  --color-ink-900: #0d1117;
+  --color-ink-850: #12171f;
+  --color-ink-800: #161c26;
+  --color-ink-700: #1f2733;
+  --color-ink-600: #2b3543;
+  --color-ink-500: #3d4858;
+  --color-ink-400: #5a6678;
+  --color-ink-300: #8b97a8;
+  --color-ink-200: #c2cbd8;
+  --color-ink-100: #e6ebf2;
+
+  --color-brand-400: #7dd3fc;
+  --color-brand-500: #38bdf8;
+  --color-brand-600: #0ea5e9;
+
+  --color-good-500: #34d399;
+  --color-warn-500: #fbbf24;
+  --color-bad-500: #f87171;
+
+  --font-sans:
+    ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background-color: var(--color-ink-900);
+    color: var(--color-ink-100);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* The macOS window uses hiddenInset, so the top strip must be draggable. */
+  .drag-region {
+    -webkit-app-region: drag;
+  }
+
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ink-600);
+    border-radius: 5px;
+    border: 2px solid var(--color-ink-900);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-500);
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  /* Users are pressing piano keys, not selecting text. */
+  .select-none-app {
+    user-select: none;
+  }
+}

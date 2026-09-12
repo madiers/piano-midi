@@ -1,0 +1,110 @@
+appId: com.madiers.pianomidi
+productName: Piano MIDI
+copyright: Copyright © 2026 Madiyour Ismagulov
+
+directories:
+  buildResources: build
+  output: release/${version}
+
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!scripts/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!electron-builder.yml'
+  - '!{.eslintrc.cjs,.eslintignore,.prettierrc,.prettierignore,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml,package-lock.json}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,vitest.config.ts}'
+  - '!release/*'
+
+# Piano samples live outside the asar so they stream from disk without
+# being unpacked into memory first.
+extraResources:
+  - from: resources/audio
+    to: audio
+    filter: ['**/*']
+
+asarUnpack:
+  - resources/**
+
+# ---------------------------------------------------------------- macOS
+mac:
+  category: public.app-category.music
+  target:
+    # zip is REQUIRED alongside dmg — electron-updater's macOS path updates from zip.
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  icon: build/icon.icns
+  darkModeSupport: true
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: Piano MIDI does not record audio. This entry is present only because Chromium requests the permission at startup.
+    LSMinimumSystemVersion: '11.0'
+
+dmg:
+  title: ${productName} ${version}
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  contents:
+    - x: 140
+      y: 200
+      type: file
+    - x: 400
+      y: 200
+      type: link
+      path: /Applications
+  window:
+    width: 540
+    height: 380
+
+# ---------------------------------------------------------------- Windows
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+  icon: build/icon.ico
+  artifactName: ${productName}-${version}-setup.${ext}
+
+# oneClick:false is what turns this into a real multi-page install wizard
+# (welcome -> license -> install directory -> progress -> finish).
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Piano MIDI
+  license: LICENSE
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+
+# ---------------------------------------------------------------- Linux
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: build/icon.png
+  category: Audio;Music;Education
+  synopsis: Learn piano with your MIDI keyboard
+  desktop:
+    entry:
+      Name: Piano MIDI
+      Categories: AudioVideo;Audio;Music;Education;
+
+# ---------------------------------------------------------------- Updates
+# Public GitHub Releases act as the update feed, so the shipped app needs
+# no token. See src/main/updater.ts for the unsigned-macOS fallback.
+publish:
+  provider: github
+  owner: madiers
+  repo: piano-midi
+  releaseType: release
+
+npmRebuild: false

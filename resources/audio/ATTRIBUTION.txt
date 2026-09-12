@@ -1,0 +1,14 @@
+Piano samples bundled with Piano MIDI
+
+Salamander Grand Piano V3
+Copyright Alexander Holm
+Licensed under Creative Commons Attribution 3.0 (CC BY 3.0)
+https://creativecommons.org/licenses/by/3.0/
+Source: https://archive.org/details/SalamanderGrandPianoV3
+
+The samples were obtained via the @audio-samples/piano-mp3-velocity*
+npm packages by Jan Forst (https://github.com/darosh/samples-piano-mp3),
+which are MIT licensed. The underlying recordings remain CC BY 3.0.
+
+No changes were made to the recordings other than selecting a subset
+of velocity layers for distribution size.
