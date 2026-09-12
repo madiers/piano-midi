@@ -69,7 +69,7 @@ Download the latest build for your platform from
   ```
 
   Either way you only do this once. It goes away entirely once the app is
-  signed with an Apple Developer ID — see [Updates](#updates).
+  signed — see [SIGNING.md](SIGNING.md) for how, and what it costs.
 - **Windows** — run the installer. It is a normal multi-page wizard and lets
   you choose the install location. SmartScreen may warn that the publisher is
   unknown; choose **More info → Run anyway**.
@@ -190,11 +190,11 @@ Linux. On macOS it cannot: Squirrel.Mac validates the code signature of the
 replacement app, and these builds are unsigned. There, the app tells you a new
 version exists and links to the download instead of failing silently.
 
-Signing macOS properly needs an Apple Developer account ($99/year). The
-updater code already handles it — setting a Developer ID and
-`PIANO_MIDI_MAC_SIGNED=1` turns on true silent updates with no other change.
-For Windows, [SignPath Foundation](https://signpath.org) offers free
-certificates to qualifying open-source projects.
+Making this go away is purely a credentials job — no code changes. Add the
+signing secrets to the repo and the release workflow signs, notarizes and
+enables macOS auto-update on its own. macOS needs an Apple Developer account
+($99/year); Windows can be free via SignPath Foundation for open-source
+projects. Step-by-step in **[SIGNING.md](SIGNING.md)**.
 
 ## Credits
 

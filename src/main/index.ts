@@ -117,7 +117,11 @@ function createWindow(): void {
       nodeIntegration: false,
       // Audio must be allowed to start without a click so the first key press
       // makes a sound. Electron defaults this to false already, but be explicit.
-      autoplayPolicy: 'no-user-gesture-required'
+      autoplayPolicy: 'no-user-gesture-required',
+      // Web MIDI lives only in the renderer, and Chromium throttles timers and
+      // requestAnimationFrame in occluded windows. For a piano app that means
+      // note handling degrades the moment the window loses focus.
+      backgroundThrottling: false
     }
   })
 

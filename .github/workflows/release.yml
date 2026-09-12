@@ -29,25 +29,43 @@ jobs:
       - run: npm ci
       - run: npm run assets
       - run: npm run build
+        env:
+          # Bakes the "this build can update itself on macOS" constant in. It
+          # must be set at BUILD time: a packaged app started from Finder has no
+          # shell environment, so reading it at runtime would always be false.
+          PIANO_MIDI_MAC_SIGNED: ${{ secrets.MAC_CSC_LINK != '' && '1' || '0' }}
 
-      # Each OS publishes its own artifacts into the same draft release.
-      # electron-updater needs latest.yml / latest-mac.yml / latest-linux.yml
-      # alongside the installers, which electron-builder emits automatically.
-      #
-      # macOS note: mac.target includes `zip` as well as `dmg` because
-      # electron-updater looks specifically for a zip and explicitly excludes
-      # dmg and pkg. Dropping it breaks auto-update with
-      # ERR_UPDATER_ZIP_FILE_NOT_FOUND.
+      # Signing turns itself on as soon as the secrets exist — no code change.
+      # Until then the build is unsigned and macOS shows a Gatekeeper warning
+      # on first launch, which is expected and documented in SIGNING.md.
       - name: Build and publish
-        run: npx electron-builder --publish always
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # These builds are unsigned. Without this, electron-builder tries to
-          # discover a signing identity on the macOS runner and fails the build.
-          #
-          # To sign properly later: add an Apple Developer ID certificate and
-          # its password as CSC_LINK / CSC_KEY_PASSWORD secrets, add
-          # APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for
-          # notarization, drop this line, and set PIANO_MIDI_MAC_SIGNED=1 so
-          # the app enables in-place updates on macOS.
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+          # --- macOS: Developer ID certificate + notarization ---
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+          # --- Windows: Authenticode certificate ---
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$RUNNER_OS" == "macOS" && -n "${CSC_LINK:-}" ]]; then
+            echo "macOS: signing with Developer ID and notarizing"
+            npx electron-builder --publish always --config.mac.notarize=true
+          elif [[ "$RUNNER_OS" == "Windows" && -n "${WIN_CSC_LINK:-}" ]]; then
+            echo "Windows: signing with Authenticode"
+            npx electron-builder --publish always
+          else
+            echo "No signing credentials for $RUNNER_OS — building unsigned."
+            # Without this, electron-builder finds any stray identity in the
+            # runner keychain and blocks on it.
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+            npx electron-builder --publish always
+          fi

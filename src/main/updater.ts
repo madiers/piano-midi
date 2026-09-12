@@ -36,10 +36,16 @@ const { autoUpdater } = electronUpdater
 const RELEASES_URL = 'https://github.com/madiers/piano-midi/releases/latest'
 
 /**
- * Flipped on by the build when a Developer ID signing identity is configured.
- * Until then, macOS gets check-and-notify instead of silent install.
+ * Replaced at build time by electron-vite's `define` (see electron.vite.config.ts),
+ * from PIANO_MIDI_MAC_SIGNED in the build environment.
+ *
+ * It must be a compile-time constant: a packaged app started from Finder
+ * inherits no shell environment, so reading process.env here would always be
+ * undefined and macOS auto-update would never switch on, however well the app
+ * was signed.
  */
-const MAC_SIGNED_BUILD = process.env.PIANO_MIDI_MAC_SIGNED === '1'
+declare const __MAC_SIGNED__: boolean
+const MAC_SIGNED_BUILD = typeof __MAC_SIGNED__ === 'boolean' ? __MAC_SIGNED__ : false
 
 export class UpdaterService {
   private window: BrowserWindow | null = null
