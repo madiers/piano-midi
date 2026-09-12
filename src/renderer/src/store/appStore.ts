@@ -51,7 +51,13 @@ interface AppState {
   selectDevice: (deviceId: string | null) => void
   setTranspose: (semitones: number) => void
   updateSettings: (patch: DeepPartial<AppSettings>) => Promise<void>
-  saveProgress: (progress: UserProgress) => Promise<void>
+  /**
+   * Accepts an updater so writes always apply to the CURRENT progress rather
+   * than to whatever a component captured when it rendered. Several call sites
+   * write progress from effects and callbacks, and passing a plain object
+   * there silently drops any write that landed in between.
+   */
+  saveProgress: (update: UserProgress | ((previous: UserProgress) => UserProgress)) => Promise<void>
   resetProgress: () => Promise<void>
   addMidiTap: (tap: MidiTap) => () => void
 }
@@ -193,8 +199,9 @@ export const useAppStore = create<AppState>((set, get) => {
       midiEngine.setTranspose(settings.midi.transpose)
     },
 
-    async saveProgress(progress) {
-      const saved = await window.api.setProgress(progress)
+    async saveProgress(update) {
+      const next = typeof update === 'function' ? update(get().progress) : update
+      const saved = await window.api.setProgress(next)
       set({ progress: saved })
     },
 

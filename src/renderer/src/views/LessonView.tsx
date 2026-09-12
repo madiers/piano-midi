@@ -56,7 +56,6 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
   const settings = useAppStore((s) => s.settings)
   const held = useAppStore((s) => s.heldNotes)
   const audio = useAppStore((s) => s.audio)
-  const progress = useAppStore((s) => s.progress)
   const saveProgress = useAppStore((s) => s.saveProgress)
   const updateSettings = useAppStore((s) => s.updateSettings)
 
@@ -82,14 +81,15 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
   const recordResult = useCallback(
     (result: PerformanceResult) => {
       const tempoPercent = tempo === 'wait' ? 0 : tempo
-      const existing = progress.lessons[lesson.id]
       const passed =
         result.final >= lesson.mastery.minScore && tempoPercent >= lesson.mastery.minTempoPercent
 
-      void saveProgress({
-        ...progress,
+      void saveProgress((previous) => {
+        const existing = previous.lessons[lesson.id]
+        return {
+        ...previous,
         lessons: {
-          ...progress.lessons,
+          ...previous.lessons,
           [lesson.id]: {
             lessonId: lesson.id,
             stars: Math.max(existing?.stars ?? 0, result.stars) as 0 | 1 | 2 | 3,
@@ -102,13 +102,14 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
           }
         },
         stats: recordPractice(
-          progress.stats,
+          previous.stats,
           performance.now() - openedAt.current,
           result.correct
         ).stats
+        }
       })
     },
-    [lesson, progress, saveProgress, tempo]
+    [lesson, saveProgress, tempo]
   )
 
   const runner = useExerciseRunner({
@@ -123,38 +124,39 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
   // A concept lesson is complete once it has been read.
   useEffect(() => {
     if (lesson.kind !== 'concept') return
-    if (progress.lessons[lesson.id]?.completed) return
-    void saveProgress({
-      ...progress,
-      lessons: {
-        ...progress.lessons,
-        [lesson.id]: {
-          lessonId: lesson.id,
-          stars: 0,
-          bestScore: 0,
-          bestPitchAccuracy: 0,
-          attempts: 1,
-          bestTempoPercent: 0,
-          completed: true,
-          lastPlayedAt: new Date().toISOString()
+    void saveProgress((previous) => {
+      if (previous.lessons[lesson.id]?.completed) return previous
+      return {
+        ...previous,
+        lessons: {
+          ...previous.lessons,
+          [lesson.id]: {
+            lessonId: lesson.id,
+            stars: 0,
+            bestScore: 0,
+            bestPitchAccuracy: 0,
+            attempts: 1,
+            bestTempoPercent: 0,
+            completed: true,
+            lastPlayedAt: new Date().toISOString()
+          }
         }
       }
     })
-    // Only when the lesson changes, not on every progress write.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lesson.id])
+  }, [lesson.id, lesson.kind, saveProgress])
 
   /** Drills score as a simple proportion correct; there is no timing to grade. */
   const recordDrillResult = useCallback(
     (score: number) => {
-      const existing = progress.lessons[lesson.id]
       const passed = score >= lesson.mastery.minScore
       const stars: 0 | 1 | 2 | 3 = score >= 0.93 ? 3 : score >= 0.8 ? 2 : score >= 0.6 ? 1 : 0
 
-      void saveProgress({
-        ...progress,
+      void saveProgress((previous) => {
+        const existing = previous.lessons[lesson.id]
+        return {
+        ...previous,
         lessons: {
-          ...progress.lessons,
+          ...previous.lessons,
           [lesson.id]: {
             lessonId: lesson.id,
             stars: Math.max(existing?.stars ?? 0, stars) as 0 | 1 | 2 | 3,
@@ -167,10 +169,11 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
             lastPlayedAt: new Date().toISOString()
           }
         },
-        stats: recordPractice(progress.stats, performance.now() - openedAt.current, 0).stats
+        stats: recordPractice(previous.stats, performance.now() - openedAt.current, 0).stats
+        }
       })
     },
-    [lesson, progress, saveProgress]
+    [lesson, saveProgress]
   )
 
   const retry = useCallback(() => {
