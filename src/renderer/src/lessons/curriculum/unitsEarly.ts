@@ -163,7 +163,9 @@ export const UNIT_1: Unit = makeUnit(
           'The white keys run A B C D E F G, then start again at A. Seven letters, repeating forever — there is no H.\n\nGoing right raises the pitch; going left lowers it. When you arrive back at the same letter you have moved an octave.'
         )
       ],
-      exercise: { kind: 'findNote', pool: MID_WHITE_KEYS, acceptAnyOctave: false, rounds: 12 },
+      // Letter names only — octave numbers are a separate skill, and demanding
+      // "C3" rather than "a C" here would be testing something not yet taught.
+      exercise: { kind: 'findNote', pool: MID_WHITE_KEYS, acceptAnyOctave: true, rounds: 12 },
       srsAtoms: ['white-key-names']
     }
   ]

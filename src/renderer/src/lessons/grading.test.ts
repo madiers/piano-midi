@@ -290,3 +290,53 @@ describe('PerformanceGrader', () => {
     expect(result.meanTimingErrorMs).toBeLessThan(-30)
   })
 })
+
+describe('rhythm mode (regression)', () => {
+  const opts = { profile: 'standard' as const, bpm: 60, ignorePitch: true }
+
+  it('accepts any key, because the lesson says any key is fine', () => {
+    const events = [makeEvent('a', 0, [60]), makeEvent('b', 1000, [60])]
+    const grader = new PerformanceGrader(events, opts)
+    grader.start(0)
+
+    // The student taps two completely different keys, as instructed.
+    grader.noteOn(43, 0, 80)
+    grader.noteOn(77, 1000, 80)
+
+    const result = grader.complete()
+    expect(result.correct).toBe(2)
+    expect(result.wrong).toBe(0)
+    expect(result.pitchAccuracy).toBe(1)
+    expect(result.stars).toBe(3)
+  })
+
+  it('still grades timing strictly', () => {
+    const events = [makeEvent('a', 0, [60]), makeEvent('b', 1000, [60])]
+    const grader = new PerformanceGrader(events, opts)
+    grader.start(0)
+    grader.noteOn(50, 0, 80)
+    grader.tick(5000) // second event never played
+
+    const result = grader.complete()
+    expect(result.correct).toBe(1)
+    expect(result.missed).toBe(1)
+  })
+
+  it('works in wait mode too', () => {
+    const events = [makeEvent('a', 0, [60]), makeEvent('b', 1000, [60])]
+    const grader = new PerformanceGrader(events, { ...opts, waitMode: true })
+    grader.noteOn(41, 0, 80)
+    grader.noteOn(81, 5000, 80)
+    expect(grader.isFinished).toBe(true)
+    expect(grader.complete().pitchAccuracy).toBe(1)
+  })
+
+  it('does not leak into normal exercises', () => {
+    // Without ignorePitch, a wrong key is still a wrong key.
+    const events = [makeEvent('a', 0, [60])]
+    const grader = new PerformanceGrader(events, { profile: 'standard', bpm: 60 })
+    grader.start(0)
+    grader.noteOn(62, 0, 80)
+    expect(grader.complete().wrong).toBe(1)
+  })
+})

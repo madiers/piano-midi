@@ -21,6 +21,8 @@ export interface UseExerciseRunnerOptions {
   tempo: 'wait' | number
   countInBars?: number
   metronome?: boolean
+  /** Rhythm exercises grade timing only; any key counts. */
+  ignorePitch?: boolean
   onComplete?: (result: PerformanceResult) => void
 }
 
@@ -108,6 +110,7 @@ export function useExerciseRunner(options: UseExerciseRunnerOptions): ExerciseRu
       bpm: effectiveBpm,
       inputOffsetMs: calibration?.inputOffsetMs ?? 0,
       waitMode,
+      ignorePitch: options.ignorePitch ?? false,
       tempoPercent,
       onFeedback: (event: FeedbackEvent) => {
         setOutcomes((previous) => {

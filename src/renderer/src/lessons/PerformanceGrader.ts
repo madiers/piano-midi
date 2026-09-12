@@ -71,6 +71,14 @@ export interface GraderOptions {
   waitMode?: boolean
   /** Percentage of target tempo this run is at, for star eligibility. */
   tempoPercent?: number
+  /**
+   * Accept ANY pitch as the right note, grading timing only.
+   *
+   * Rhythm exercises tell the student "tap any key — any pitch is fine".
+   * Without this the grader still matched strictly by pitch, so following that
+   * instruction scored every tap as a wrong note.
+   */
+  ignorePitch?: boolean
   onFeedback?: (event: FeedbackEvent) => void
 }
 
@@ -86,6 +94,7 @@ export class PerformanceGrader {
   private readonly offsetApplied: number
   readonly offsetResidual: number
   private readonly waitMode: boolean
+  private readonly ignorePitch: boolean
   private readonly tempoPercent: number
   private readonly onFeedback?: (event: FeedbackEvent) => void
 
@@ -111,6 +120,7 @@ export class PerformanceGrader {
     this.profile = GRADING_PROFILES[options.profile]
     this.windows = timingWindows(options.bpm, this.profile)
     this.waitMode = options.waitMode ?? false
+    this.ignorePitch = options.ignorePitch ?? false
     this.tempoPercent = options.tempoPercent ?? 100
     this.onFeedback = options.onFeedback
 
@@ -179,16 +189,22 @@ export class PerformanceGrader {
       (e) => !e.expired && e.unmatched.size > 0 && Math.abs(t - e.onsetMs) <= this.windows.ok
     )
 
-    // First preference: an event still waiting for exactly this pitch.
-    const exact = candidates
-      .filter((e) => e.unmatched.has(pitch))
-      .sort((a, b) => Math.abs(t - a.onsetMs) - Math.abs(t - b.onsetMs))[0]
+    // In rhythm mode any key satisfies the nearest waiting event; only the
+    // timing is judged.
+    const exact = this.ignorePitch
+      ? candidates.sort((a, b) => Math.abs(t - a.onsetMs) - Math.abs(t - b.onsetMs))[0]
+      : candidates
+          .filter((e) => e.unmatched.has(pitch))
+          .sort((a, b) => Math.abs(t - a.onsetMs) - Math.abs(t - b.onsetMs))[0]
 
     if (exact) {
       const errorMs = t - exact.onsetMs
       const judgement = judgeTiming(errorMs, this.windows, this.profile)
-      exact.unmatched.delete(pitch)
-      exact.results.set(pitch, judgement)
+      // With pitch ignored, consume whichever slot is waiting rather than the
+      // one matching the played note.
+      const consumed = this.ignorePitch ? ([...exact.unmatched][0] ?? pitch) : pitch
+      exact.unmatched.delete(consumed)
+      exact.results.set(consumed, judgement)
       exact.onsetTimes.push(t)
       this.correct += 1
       this.judgements.push(judgement)
@@ -240,6 +256,21 @@ export class PerformanceGrader {
   private handleWaitMode(pitch: number): void {
     const event = this.events[this.waitIndex]
     if (!event) return
+
+    if (this.ignorePitch) {
+      const consumed = [...event.unmatched][0]
+      if (consumed === undefined) return
+      event.unmatched.delete(consumed)
+      event.results.set(consumed, 'perfect')
+      this.correct += 1
+      this.judgements.push('perfect')
+      this.emit({ type: 'hit', eventId: event.id, pitch, judgement: 'perfect', errorMs: 0 })
+      if (event.unmatched.size === 0) {
+        this.waitIndex += 1
+        if (this.waitIndex >= this.events.length) this.complete()
+      }
+      return
+    }
 
     if (event.unmatched.has(pitch)) {
       event.unmatched.delete(pitch)

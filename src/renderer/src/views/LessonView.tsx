@@ -119,6 +119,8 @@ export function LessonView({ lesson, onExit, onAdvance }: LessonViewProps): Reac
     tempo,
     countInBars: settings.practice.countInBars,
     metronome: settings.practice.metronomeEnabled,
+    // "Tap any key" has to mean it.
+    ignorePitch: lesson.exercise?.kind === 'rhythmTap',
     onComplete: recordResult
   })
 
