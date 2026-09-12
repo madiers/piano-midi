@@ -15,10 +15,7 @@
  * skipped unless --force is passed.
  */
 
-import { createWriteStream } from 'node:fs'
-import { mkdir, readdir, rm, writeFile, access } from 'node:fs/promises'
-import { pipeline } from 'node:stream/promises'
-import { createGunzip } from 'node:zlib'
+import { mkdir, readdir, rm, writeFile, access, cp } from 'node:fs/promises'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
@@ -52,6 +49,13 @@ async function exists(path) {
     return false
   }
 }
+
+/**
+ * npm is `npm.cmd` on Windows, and `spawn` without a shell will not find it —
+ * it fails with ENOENT, which reads like npm is missing rather than like a
+ * path problem.
+ */
+const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 function run(cmd, args, opts = {}) {
   return new Promise((resolvePromise, reject) => {
@@ -88,7 +92,7 @@ async function fetchLayer(layer) {
   try {
     // `npm pack` resolves the registry, verifies the integrity hash, and
     // respects any proxy/registry config the user already has.
-    const tarballName = await run('npm', ['pack', `${layer.pkg}@${layer.version}`, '--silent'], {
+    const tarballName = await run(NPM, ['pack', `${layer.pkg}@${layer.version}`, '--silent'], {
       cwd: work
     })
     const tarball = join(work, tarballName.split('\n').pop().trim())
@@ -102,7 +106,8 @@ async function fetchLayer(layer) {
 
     await rm(targetDir, { recursive: true, force: true })
     await mkdir(targetDir, { recursive: true })
-    await run('cp', ['-R', `${audioSrc}/.`, targetDir])
+    // fs.cp rather than `cp -R`, which does not exist on Windows.
+    await cp(audioSrc, targetDir, { recursive: true })
 
     const copied = (await readdir(targetDir)).filter((f) => f.endsWith('.mp3'))
     console.log(`  velocity ${layer.velocity}: ${copied.length} samples -> resources/audio/samples/v${layer.velocity}`)

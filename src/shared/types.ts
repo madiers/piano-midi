@@ -389,6 +389,13 @@ export interface PhraseGeneratorSpec {
   restProbability: number
   /** Allow chords of this many notes. 1 = melody only. */
   maxChordSize?: number
+  /**
+   * Where the two hands divide when `hand` is 'both'. Notes below this go to
+   * the left hand, notes at or above it to the right. Defaults to Middle C.
+   * Without this the hands share one pool and can be handed the same key at
+   * the same instant, which nobody can play.
+   */
+  handSplit?: number
 }
 
 // -------------------------------------------------------------------- lessons

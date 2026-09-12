@@ -48,14 +48,31 @@ export function generatePhrase(spec: PhraseGeneratorSpec, seed: number): Phrase 
   if (pool.length === 0) throw new Error('generator pool is empty')
 
   const notes: PhraseNote[] = []
-  let poolIndex = Math.floor(pool.length / 2)
   let counter = 0
 
   const hands: Array<'left' | 'right'> =
     spec.hand === 'both' ? ['right', 'left'] : [spec.hand]
 
+  /**
+   * Each hand draws from its own part of the pool.
+   *
+   * Sharing one pool across both hands produces material nobody can play: the
+   * left hand gets assigned notes from the right hand's register, and — worse —
+   * both hands can be given the SAME key at the same instant. The split point
+   * defaults to Middle C, which is how the two staves divide the keyboard.
+   */
+  const split = spec.handSplit ?? 60
+  const poolFor = (hand: 'left' | 'right'): number[] => {
+    if (spec.hand !== 'both') return pool
+    const part = hand === 'left' ? pool.filter((n) => n < split) : pool.filter((n) => n >= split)
+    // If a lesson's pool sits entirely on one side of the split, fall back to
+    // the whole pool rather than generating nothing.
+    return part.length > 0 ? part : pool
+  }
+
   for (const hand of hands) {
-    poolIndex = Math.floor(pool.length / 2)
+    const handPool = poolFor(hand)
+    let poolIndex = Math.floor(handPool.length / 2)
 
     for (let bar = 0; bar < spec.bars; bar++) {
       let remaining = beatsPerBar
@@ -75,14 +92,14 @@ export function generatePhrase(spec: PhraseGeneratorSpec, seed: number): Phrase 
         // Move by a step or small skip rather than jumping anywhere in range.
         const leap = 1 + Math.floor(rng() * spec.maxLeap)
         const direction = rng() < 0.5 ? -1 : 1
-        poolIndex = clampIndex(poolIndex + direction * leap, pool.length)
+        poolIndex = clampIndex(poolIndex + direction * leap, handPool.length)
 
-        const midi: number[] = [pool[poolIndex]!]
+        const midi: number[] = [handPool[poolIndex]!]
 
         // Optional harmonic interval on top, for chord-reading exercises.
         if (spec.maxChordSize && spec.maxChordSize > 1 && rng() < 0.3) {
-          const extra = clampIndex(poolIndex + 2, pool.length)
-          if (extra !== poolIndex) midi.push(pool[extra]!)
+          const extra = clampIndex(poolIndex + 2, handPool.length)
+          if (extra !== poolIndex) midi.push(handPool[extra]!)
         }
 
         notes.push({

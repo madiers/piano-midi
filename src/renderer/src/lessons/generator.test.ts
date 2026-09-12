@@ -105,3 +105,58 @@ describe('rng', () => {
     }
   })
 })
+
+describe('two-hand generation (regression)', () => {
+  const bothHands: PhraseGeneratorSpec = {
+    bars: 4,
+    timeSignature: [4, 4],
+    tempoBpm: 69,
+    keySignatureFifths: 0,
+    // Left-hand and right-hand C positions together.
+    pool: [48, 50, 52, 53, 55, 60, 62, 64, 65, 67],
+    hand: 'both',
+    durations: [1, 2],
+    maxLeap: 2,
+    restProbability: 0
+  }
+
+  it('keeps each hand in its own register', () => {
+    for (const seed of [99, 7, 12345]) {
+      const phrase = generatePhrase(bothHands, seed)
+      for (const note of phrase.notes) {
+        for (const midi of note.midi) {
+          if (note.hand === 'left') expect(midi).toBeLessThan(60)
+          else expect(midi).toBeGreaterThanOrEqual(60)
+        }
+      }
+    }
+  })
+
+  it('never asks both hands for the same key at the same instant', () => {
+    // Sharing one pool across hands produced exactly this: two simultaneous
+    // events on the same key, which no one can play and which the grader
+    // then reported as a missed note.
+    for (const seed of [99, 7, 12345, 2024, 5]) {
+      const phrase = generatePhrase(bothHands, seed)
+      const byOnset = new Map<number, number[]>()
+      for (const note of phrase.notes) {
+        const at = byOnset.get(note.startBeats) ?? []
+        at.push(...note.midi)
+        byOnset.set(note.startBeats, at)
+      }
+      for (const [onset, pitches] of byOnset) {
+        expect(new Set(pitches).size, `duplicate pitch at beat ${onset}`).toBe(pitches.length)
+      }
+    }
+  })
+
+  it('respects an explicit hand split', () => {
+    const phrase = generatePhrase({ ...bothHands, handSplit: 55 }, 4)
+    for (const note of phrase.notes) {
+      for (const midi of note.midi) {
+        if (note.hand === 'left') expect(midi).toBeLessThan(55)
+        else expect(midi).toBeGreaterThanOrEqual(55)
+      }
+    }
+  })
+})
