@@ -140,6 +140,21 @@ function createWindow(): void {
     void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  // Dev utility: PIANO_MIDI_CAPTURE=<path> screenshots the window and exits.
+  // Used to verify rendering without needing screen-recording permission.
+  if (process.env.PIANO_MIDI_CAPTURE) {
+    const target = process.env.PIANO_MIDI_CAPTURE
+    const delay = Number(process.env.PIANO_MIDI_CAPTURE_DELAY ?? 6000)
+    setTimeout(() => {
+      void mainWindow?.webContents.capturePage().then(async (image) => {
+        const { writeFile } = await import('node:fs/promises')
+        await writeFile(target, image.toPNG())
+        log.info('[capture] wrote', target)
+        app.quit()
+      })
+    }, delay)
+  }
+
   updater.attach(mainWindow)
   mainWindow.on('closed', () => {
     mainWindow = null

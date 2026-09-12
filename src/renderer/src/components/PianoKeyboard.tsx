@@ -1,5 +1,6 @@
 import { useMemo, type CSSProperties } from 'react'
-import { isBlackKey, noteName, pitchClass, pitchClassName } from '../music/pitch'
+import { noteName, pitchClass, pitchClassName } from '../music/pitch'
+import { buildKeyboardGeometry } from './keyGeometry'
 
 export type KeyMark = 'target' | 'correct' | 'wrong' | 'hint' | 'ghost'
 
@@ -41,20 +42,6 @@ const MARK_BLACK: Record<KeyMark, string> = {
   ghost: 'bg-ink-500'
 }
 
-/**
- * How far a black key sits from the boundary between its neighbouring white
- * keys, as a fraction of a white key's width. Real pianos don't centre black
- * keys on the gap — C# sits left of centre, D# right — and copying that makes
- * the keyboard read correctly at a glance.
- */
-const BLACK_KEY_OFFSET: Record<number, number> = {
-  1: -0.18, // C#
-  3: 0.18, // D#
-  6: -0.22, // F#
-  8: 0, // G#
-  10: 0.22 // A#
-}
-
 export function PianoKeyboard({
   low,
   high,
@@ -72,24 +59,20 @@ export function PianoKeyboard({
   const isHeld = (midi: number): boolean =>
     held instanceof Set ? held.has(midi) : Boolean(held?.has(midi))
 
-  const { whites, blacks, whiteCount } = useMemo(() => {
-    const whiteKeys: number[] = []
-    const blackKeys: Array<{ midi: number; whiteIndexBefore: number }> = []
+  // Geometry is shared with the falling-note lane so the two always line up.
+  const geometry = useMemo(() => buildKeyboardGeometry(low, high), [low, high])
 
-    for (let midi = low; midi <= high; midi++) {
-      if (isBlackKey(midi)) {
-        blackKeys.push({ midi, whiteIndexBefore: whiteKeys.length - 1 })
-      } else {
-        whiteKeys.push(midi)
-      }
-    }
-    return { whites: whiteKeys, blacks: blackKeys, whiteCount: whiteKeys.length }
-  }, [low, high])
+  const whites = useMemo(
+    () => [...geometry.keys.values()].filter((k) => !k.black).sort((a, b) => a.midi - b.midi),
+    [geometry]
+  )
+  const blacks = useMemo(
+    () => [...geometry.keys.values()].filter((k) => k.black).sort((a, b) => a.midi - b.midi),
+    [geometry]
+  )
 
-  if (whiteCount === 0) return <div className={className} />
+  if (whites.length === 0) return <div className={className} />
 
-  const whiteWidthPct = 100 / whiteCount
-  const blackWidthPct = whiteWidthPct * 0.62
   const blackHeight = Math.round(height * 0.62)
 
   const inDeviceRange = (midi: number): boolean =>
@@ -104,7 +87,7 @@ export function PianoKeyboard({
     >
       {/* White keys */}
       <div className="absolute inset-0 flex">
-        {whites.map((midi) => {
+        {whites.map(({ midi, width: keyWidth }) => {
           const mark = marks?.get(midi)
           const active = isHeld(midi)
           const outside = !inDeviceRange(midi)
@@ -126,7 +109,9 @@ export function PianoKeyboard({
                 if (e.buttons > 0) onKeyUp?.(midi)
               }}
               className={[
-                'relative flex-1 rounded-b-md border border-ink-600 border-t-0',
+                // Width comes from the shared geometry, not from flex, so the
+                // keys line up with the falling-note lane exactly.
+                'relative shrink-0 rounded-b-md border border-ink-600 border-t-0',
                 'transition-colors duration-75 flex flex-col justify-end items-center pb-1.5',
                 active
                   ? 'bg-brand-500 shadow-inner'
@@ -136,7 +121,7 @@ export function PianoKeyboard({
                       ? 'bg-ink-300'
                       : 'bg-ink-100 hover:bg-white'
               ].join(' ')}
-              style={{ width: `${whiteWidthPct}%` }}
+              style={{ width: `${keyWidth * 100}%` }}
             >
               {finger !== undefined && (
                 <span className="mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink-900 text-[11px] font-bold text-ink-100">
@@ -159,21 +144,15 @@ export function PianoKeyboard({
 
       {/* Black keys, drawn on top */}
       <div className="pointer-events-none absolute inset-0">
-        {blacks.map(({ midi, whiteIndexBefore }) => {
+        {blacks.map(({ midi, left, width: keyWidth }) => {
           const mark = marks?.get(midi)
           const active = isHeld(midi)
           const outside = !inDeviceRange(midi)
           const finger = fingers?.get(midi)
 
-          // Position: the boundary after the preceding white key, nudged by the
-          // per-note offset, then centred on the black key's own width.
-          const offset = BLACK_KEY_OFFSET[pitchClass(midi)] ?? 0
-          const boundaryPct = (whiteIndexBefore + 1) * whiteWidthPct
-          const leftPct = boundaryPct - blackWidthPct / 2 + offset * whiteWidthPct
-
           const style: CSSProperties = {
-            left: `${leftPct}%`,
-            width: `${blackWidthPct}%`,
+            left: `${left * 100}%`,
+            width: `${keyWidth * 100}%`,
             height: blackHeight
           }
 

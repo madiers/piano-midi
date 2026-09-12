@@ -33,8 +33,11 @@ const OUTCOME_COLORS: Record<NoteOutcome, string> = {
   extra: '#f87171'
 }
 
-const INK = '#e6ebf2'
-const HIGHLIGHT = '#38bdf8'
+// The staff is drawn on a light background, so notes must be DARK. Using the
+// app's light foreground colour here renders near-white notes on a near-white
+// stave — invisible, and not obvious from the code alone.
+const INK = '#12171f'
+const HIGHLIGHT = '#0284c7'
 
 /**
  * Renders a phrase as grand-staff notation with VexFlow.
@@ -64,50 +67,67 @@ export function StaffView({
     const hasRight = phrase.notes.some((n) => n.hand === 'right')
     const grand = hasLeft && hasRight
 
-    const height = grand ? 260 : 170
+    const beatsPerBar = phrase.timeSignature[0]
+    const bars = Math.max(1, phrase.bars)
+
+    // Wrap bars onto successive systems rather than running off the right edge.
+    // Real sheet music does this, and a 16-bar piece on one scrolling line is
+    // unreadable — the student cannot see where the phrase is going.
+    const LEFT_PAD = 20
+    const RIGHT_PAD = 20
+    const MIN_BAR_WIDTH = 150
+    const usable = width - LEFT_PAD - RIGHT_PAD
+    const barsPerSystem = Math.max(1, Math.min(bars, Math.floor(usable / MIN_BAR_WIDTH)))
+    const systemCount = Math.ceil(bars / barsPerSystem)
+    const barWidth = usable / barsPerSystem
+
+    const systemHeight = grand ? 240 : 130
+    const height = systemCount * systemHeight + 30
+
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(width, height)
     const context = renderer.getContext()
     context.setFont('sans-serif', 10)
 
-    const beatsPerBar = phrase.timeSignature[0]
-    const barWidth = Math.max(160, (width - 80) / Math.max(1, phrase.bars))
-
     const treble: Stave[] = []
     const bass: Stave[] = []
 
-    for (let bar = 0; bar < phrase.bars; bar++) {
-      const x = 20 + bar * barWidth
-      const isFirst = bar === 0
+    for (let bar = 0; bar < bars; bar++) {
+      const system = Math.floor(bar / barsPerSystem)
+      const column = bar % barsPerSystem
+      // Clef, time and key signature repeat at the start of every system,
+      // which is what makes a wrapped line readable.
+      const isSystemStart = column === 0
 
-      const upper = new Stave(x, 20, barWidth)
-      if (isFirst) {
-        upper.addClef('treble').addTimeSignature(`${phrase.timeSignature[0]}/${phrase.timeSignature[1]}`)
+      const x = LEFT_PAD + column * barWidth
+      const y = 20 + system * systemHeight
+
+      const upper = new Stave(x, y, barWidth)
+      if (isSystemStart) {
+        upper.addClef('treble')
         if (phrase.keySignatureFifths !== 0) upper.addKeySignature(key.tonic)
+        if (system === 0) {
+          upper.addTimeSignature(`${phrase.timeSignature[0]}/${phrase.timeSignature[1]}`)
+        }
       }
       upper.setContext(context).draw()
       treble.push(upper)
 
       if (grand) {
-        const lower = new Stave(x, 130, barWidth)
-        if (isFirst) {
-          lower.addClef('bass').addTimeSignature(
-            `${phrase.timeSignature[0]}/${phrase.timeSignature[1]}`
-          )
+        const lower = new Stave(x, y + 110, barWidth)
+        if (isSystemStart) {
+          lower.addClef('bass')
           if (phrase.keySignatureFifths !== 0) lower.addKeySignature(key.tonic)
+          if (system === 0) {
+            lower.addTimeSignature(`${phrase.timeSignature[0]}/${phrase.timeSignature[1]}`)
+          }
         }
         lower.setContext(context).draw()
         bass.push(lower)
 
-        if (isFirst) {
-          new StaveConnector(upper, lower)
-            .setType('brace')
-            .setContext(context)
-            .draw()
-          new StaveConnector(upper, lower)
-            .setType('singleLeft')
-            .setContext(context)
-            .draw()
+        if (isSystemStart) {
+          new StaveConnector(upper, lower).setType('brace').setContext(context).draw()
+          new StaveConnector(upper, lower).setType('singleLeft').setContext(context).draw()
         }
       }
     }
@@ -120,7 +140,7 @@ export function StaffView({
         .sort((a, b) => a.startBeats - b.startBeats)
       if (notes.length === 0) return
 
-      for (let bar = 0; bar < phrase.bars; bar++) {
+      for (let bar = 0; bar < bars; bar++) {
         const stave = staves[bar]
         if (!stave) continue
 
@@ -153,7 +173,11 @@ export function StaffView({
         voice.addTickables(staveNotes)
 
         const beams = Beam.generateBeams(staveNotes)
-        new Formatter().joinVoices([voice]).format([voice], barWidth - 40)
+        // Use the stave's actual note area: bars that carry a clef and key
+        // signature have noticeably less room than the rest.
+        new Formatter()
+          .joinVoices([voice])
+          .format([voice], Math.max(40, stave.getNoteEndX() - stave.getNoteStartX() - 15))
         voice.draw(context, stave)
         for (const beam of beams) beam.setContext(context).draw()
       }
